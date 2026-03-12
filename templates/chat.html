@@ -222,9 +222,6 @@
 
     .summary-btn { font-size: 11px; padding: 2px 8px; margin-left: 8px; }
 
-    .speak-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; margin-left: 8px; opacity: 0.6; }
-    .speak-btn:hover { opacity: 1; color: var(--apple-blue); }
-
     /* ====== RWD 響應式設計 ====== */
     @media (max-width: 768px) {
         /* 側邊欄 - 行動版改為彈出式 */
@@ -444,8 +441,6 @@
             <div class="input-bar">
                 <input type="file" id="image-input" accept="image/*" style="display:none">
                 <button class="icon-btn attach-btn" onclick="document.getElementById('image-input').click()">⊕</button>
-                <button class="icon-btn voice-btn" id="voice-btn" onclick="toggleVoice()">🎤</button>
-                <button class="icon-btn" id="speak-btn" onclick="toggleSpeak()" title="語音朗讀">🔊</button>
                 <textarea id="user-input" placeholder="點擊上方「New Chat」開始對話..." rows="1"></textarea>
                 <button id="send-btn" class="icon-btn" onclick="sendMessage()">↑</button>
             </div>
@@ -552,8 +547,6 @@
         marked.setOptions({ gfm: true, breaks: true });
         
         let currentUser = null;
-        let isRecording = false;
-        let speakEnabled = false;
         
         const chatBox = document.getElementById('chat-container');
         const userInput = document.getElementById('user-input');
@@ -561,19 +554,6 @@
         const sendBtn = document.getElementById('send-btn');
         const welcomeScreen = document.getElementById('welcome-screen');
         
-        const recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        let speechRec = recognition ? new recognition() : null;
-        
-        if (speechRec) {
-            speechRec.lang = 'zh-TW';
-            speechRec.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                userInput.value += transcript;
-                stopRecording();
-            };
-            speechRec.onend = stopRecording;
-        }
-
         function getCookie(name) {
             let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
             return v ? v[2] : null;
@@ -728,42 +708,6 @@
         function loadTheme() {
             const theme = localStorage.getItem('theme');
             if (theme === 'light') document.body.classList.add('light');
-        }
-
-        function toggleVoice() {
-            if (!speechRec) {
-                alert('您的瀏覽器不支持語音識別');
-                return;
-            }
-            if (isRecording) {
-                stopRecording();
-            } else {
-                startRecording();
-            }
-        }
-
-        function startRecording() {
-            isRecording = true;
-            document.getElementById('voice-btn').classList.add('recording');
-            speechRec.start();
-        }
-
-        function stopRecording() {
-            isRecording = false;
-            document.getElementById('voice-btn').classList.remove('recording');
-        }
-
-        function toggleSpeak() {
-            speakEnabled = !speakEnabled;
-            document.getElementById('speak-btn').style.opacity = speakEnabled ? '1' : '0.6';
-        }
-
-        function speakText(text) {
-            if (!speakEnabled || !window.speechSynthesis) return;
-            window.speechSynthesis.cancel();
-            const utterance = new SpeechSynthesisUtterance(text.replace(/<[^>]+>/g, ''));
-            utterance.lang = 'zh-TW';
-            window.speechSynthesis.speak(utterance);
         }
 
         let currentId = null;
@@ -971,7 +915,7 @@
             }
         });
 
-        function addMessage(role, content, skipSpeak = false) {
+        function addMessage(role, content) {
             if (welcomeScreen) welcomeScreen.style.display = 'none';
 
             const div = document.createElement('div');
@@ -1000,7 +944,6 @@
             div.innerHTML = `
                 <div class="role-label">${role === 'user' ? '你' : 'Mathbot'}</div>
                 <div class="msg-bubble tex2jax_process">${html}</div>
-                ${role === 'assistant' ? '<button class="speak-btn" onclick="speakText(this.parentElement.querySelector(\'.msg-bubble\').innerHTML)">🔊</button>' : ''}
             `;
             chatBox.appendChild(div);
 
@@ -1023,10 +966,6 @@
                 MathJax.typesetPromise ? MathJax.typesetPromise([div]).catch(() => {}) : MathJax.Hub && MathJax.Hub.Queue(["Typeset", MathJax.Hub, div]);
             }
             chatBox.scrollTop = chatBox.scrollHeight;
-            
-            if (role === 'assistant' && !skipSpeak) {
-                speakText(content);
-            }
         }
 
         async function createNewChat() {
