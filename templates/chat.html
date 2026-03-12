@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mathbot | Apple Design</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.polyfill.io/v3/polyfill.min.js?features=es6"></script>
+
+    <script>
+    window.MathJax = {
+  tex: {
+    inlineMath: [['$', '$'], ['\\(', '\\)']],
+    displayMath: [['$$', '$$'], ['\\[', '\\]']]
+  },
+  startup: {
+    ready: function() {
+      MathJax.startup.defaultReady();
+      MathJax.startup.promise.then(function() {
+        console.log('MathJax is ready');
+      });
+    }
+  }
+};
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" async></script>
+
+<style>
+    :root {
+        --apple-bg: #000000;
+        --apple-sidebar: rgba(28, 28, 30, 0.8);
+        --apple-card: #1c1c1e;
+        --apple-blue: #0a84ff;
+        --text-primary: #ffffff;
+        --text-secondary: #8e8e93;
+        --glass-border: rgba(255, 255, 255, 0.1);
+    }
+    
+    :root.light {
+        --apple-bg: #f5f5f7;
+        --apple-sidebar: rgba(255, 255, 255, 0.9);
+        --apple-card: #ffffff;
+        --apple-blue: #007aff;
+        --text-primary: #1d1d1f;
+        --text-secondary: #6e6e73;
+        --glass-border: rgba(0, 0, 0, 0.1);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif; 
+        background: var(--apple-bg); 
+        color: var(--text-primary); 
+        height: 100vh; 
+        display: flex; 
+        overflow: hidden; 
+        -webkit-font-smoothing: antialiased;
+    }
+
+    #sidebar { 
+        width: 260px; 
+        background: var(--apple-sidebar); 
+        backdrop-filter: blur(30px);
+        -webkit-backdrop-filter: blur(30px);
+        display: flex; 
+        flex-direction: column; 
+        border-right: 0.5px solid var(--glass-border);
+        flex-shrink: 0;
+    }
+    .sidebar-header { padding: 24px 16px; }
+    .new-chat-btn { 
+        width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 10px; 
+        color: var(--text-primary); cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.2s;
+    }
+    .new-chat-btn:hover { background: rgba(255,255,255,0.2); }
+
+    .session-list { flex: 1; overflow-y: auto; padding: 10px; }
+    .session-item { 
+        padding: 12px 14px; border-radius: 8px; cursor: pointer; margin-bottom: 2px; 
+        font-size: 13px; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center;
+    }
+    .session-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+    .session-item.active { background: rgba(10, 132, 255, 0.15); color: var(--apple-blue); }
+    .session-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    .delete-btn { color: #ff453a; opacity: 0; background: none; border: none; cursor: pointer; font-size: 14px; }
+    .session-item:hover .delete-btn { opacity: 1; }
+
+    #main { flex: 1; display: flex; flex-direction: column; position: relative; background: var(--apple-bg); }
+    header { 
+        padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; 
+        border-bottom: 0.5px solid var(--glass-border); background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); z-index: 10;
+    }
+    .header-title { font-size: 17px; font-weight: 600; letter-spacing: -0.5px; }
+    #model { background: rgba(255,255,255,0.1); border: none; color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 12px; outline: none; }
+
+    #chat-container { 
+        flex: 1; overflow-y: auto; overflow-x: hidden; 
+        padding: 40px 20%; display: flex; flex-direction: column; gap: 24px; 
+    }
+
+    .message { width: 100%; display: flex; flex-direction: column; }
+    .user { align-items: flex-end; }
+    .assistant { align-items: flex-start; }
+
+    .msg-bubble { 
+        max-width: 100%; line-height: 1.6; font-size: 16px; 
+        word-wrap: break-word; word-break: break-word; overflow-wrap: anywhere;
+    }
+    .user .msg-bubble { 
+        background: var(--apple-blue); color: white; padding: 10px 18px; 
+        border-radius: 18px 18px 2px 18px; box-shadow: 0 4px 15px rgba(10, 132, 255, 0.3);
+    }
+    .assistant .msg-bubble { color: var(--text-primary); padding: 0; }
+    
+    .role-label { font-size: 11px; font-weight: 700; margin-bottom: 6px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .formula-preview { 
+        background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); 
+        border-radius: 12px; padding: 16px; margin: 10px 0; 
+    }
+    .formula-preview-title { font-size: 12px; color: var(--text-secondary); margin-bottom: 8px; }
+    .formula-preview-content { font-family: "Times New Roman", serif; font-size: 18px; }
+
+    .mode-toggle { display: flex; gap: 8px; margin-right: 12px; }
+    .mode-btn { 
+        padding: 4px 12px; border-radius: 6px; border: 1px solid var(--glass-border); 
+        background: transparent; color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: 0.2s;
+    }
+    .mode-btn.active { background: var(--apple-blue); color: white; border-color: var(--apple-blue); }
+    .mode-btn:hover:not(.active) { background: rgba(255,255,255,0.1); }
+
+    .action-buttons { display: flex; gap: 8px; margin-right: 12px; }
+    .action-btn { 
+        padding: 4px 12px; border-radius: 6px; border: none; 
+        background: rgba(255,255,255,0.1); color: var(--text-secondary); font-size: 12px; cursor: pointer; transition: 0.2s;
+    }
+    .action-btn:hover { background: rgba(255,255,255,0.2); color: white; }
+
+    .modal-overlay {
+        display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal { 
+        background: var(--apple-card); border-radius: 16px; padding: 24px; 
+        max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
+        border: 1px solid var(--glass-border);
+    }
+    .modal h3 { margin-bottom: 16px; }
+    .modal-input { width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); border-radius: 8px; color: var(--text-primary); margin-bottom: 12px; }
+    .modal-buttons { display: flex; gap: 12px; justify-content: flex-end; }
+    .modal-btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; }
+    .modal-btn.primary { background: var(--apple-blue); color: white; }
+    .modal-btn.secondary { background: rgba(255,255,255,0.1); color: var(--text-secondary); }
+
+    .upload-area {
+        border: 2px dashed var(--glass-border); border-radius: 12px; padding: 20px; 
+        text-align: center; cursor: pointer; transition: 0.2s; margin-bottom: 12px;
+    }
+    .upload-area:hover { border-color: var(--apple-blue); background: rgba(10,132,255,0.1); }
+    .upload-area.has-file { border-color: var(--apple-blue); }
+
+    .welcome-screen { text-align: center; margin-top: 15vh; animation: fadeIn 1s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .welcome-title { font-size: 42px; font-weight: 700; letter-spacing: -1px; margin-bottom: 8px; color: var(--text-primary); }
+    .welcome-sub { color: var(--text-secondary); font-size: 19px; font-weight: 400; }
+
+    .input-area-container { padding: 20px 20% 40px 20%; }
+    .input-bar { 
+        background: rgba(255,255,255,0.08); border-radius: 14px; padding: 12px 16px; 
+        display: flex; align-items: flex-end; gap: 12px; transition: 0.3s;
+        border: 0.5px solid var(--glass-border);
+    }
+    .input-bar:focus-within { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.3); }
+    
+    textarea { 
+        flex: 1; background: transparent; border: none; color: var(--text-primary); outline: none; 
+        font-size: 16px; padding: 4px 0; resize: none; max-height: 180px; min-height: 24px;
+    }
+    .icon-btn { background: none; border: none; color: var(--apple-blue); cursor: pointer; font-size: 24px; padding: 4px; transition: 0.2s; }
+    .icon-btn:disabled { color: #3a3a3c; }
+    .attach-btn { color: var(--text-secondary); font-size: 20px; }
+    .voice-btn.recording { color: #ff453a; animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+    .loader-container { display: none; margin-left: 20%; margin-bottom: 20px; font-size: 14px; color: var(--text-secondary); font-weight: 500; }
+    .loader-container.active { display: flex; align-items: center; }
+    .typing-indicator span { display: inline-block; width: 8px; height: 8px; background: var(--text-secondary); border-radius: 50%; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out; }
+    .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+    .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+    @keyframes bounce { 0%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
+
+    .msg-bubble pre { 
+        background: #1c1c1e; padding: 16px; border-radius: 12px; 
+        margin: 16px 0; border: 0.5px solid var(--glass-border); 
+        white-space: pre-wrap; word-break: break-all; overflow-x: hidden; 
+    }
+    .msg-bubble code { font-family: "SF Mono", Menlo, monospace; font-size: 14px; background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 4px; }
+    .msg-bubble ul, .msg-bubble ol { margin-left: 20px; margin-bottom: 12px; }
+
+    .plot-container {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        margin: 15px 0;
+        padding: 10px;
+        border: 1px solid var(--glass-border);
+        overflow-x: auto;
+    }
+
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .user-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--apple-blue); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: white; cursor: pointer; }
+    .theme-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 18px; padding: 4px; }
+    
+    .stats-panel { padding: 16px; background: var(--apple-card); border-radius: 12px; margin-bottom: 12px; }
+    .stats-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text-primary); }
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 20px; font-weight: 700; color: var(--apple-blue); }
+    .stat-label { font-size: 11px; color: var(--text-secondary); }
+
+    .summary-btn { font-size: 11px; padding: 2px 8px; margin-left: 8px; }
+
+    .speak-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; margin-left: 8px; opacity: 0.6; }
+    .speak-btn:hover { opacity: 1; color: var(--apple-blue); }
+</style>
+</head>
+<body>
+    <div id="sidebar">
+        <div class="sidebar-header">
+            <button class="new-chat-btn" onclick="createNewChat()">＋ New Chat</button>
+        </div>
+        <div class="session-list" id="session-list"></div>
+    </div>
+    
+    <div id="main">
+        <header>
+            <div class="header-title">Mathbot</div>
+            <div style="display: flex; gap: 12px; align-items: center;">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" id="mode-step" onclick="setMode('step_by_step')">逐步提示</button>
+                    <button class="mode-btn" id="mode-direct" onclick="setMode('direct')">直接解答</button>
+                </div>
+                <button class="action-btn" onclick="openCheckModal()">檢查解答</button>
+                <button class="action-btn" onclick="openStatsModal()">📊 統計</button>
+                <button class="theme-btn" onclick="toggleTheme()">🌓</button>
+                <div class="user-menu" id="user-menu"></div>
+            </div>
+        </header>
+        
+        <div id="chat-container">
+            <div class="welcome-screen" id="welcome-screen">
+                <h1 class="welcome-title" id="welcome-title">你好</h1>
+                <p class="welcome-sub">準備好開始今天的研究了嗎？</p>
+            </div>
+        </div>
+
+        <div class="loader-container" id="loading">
+            <div class="typing-indicator"><span></span><span></span><span></span></div>
+            <span style="margin-left: 8px;">Mathbot 正在處理中...</span>
+        </div>
+        
+        <div class="input-area-container">
+            <div class="input-bar">
+                <input type="file" id="image-input" accept="image/*" style="display:none">
+                <button class="icon-btn attach-btn" onclick="document.getElementById('image-input').click()">⊕</button>
+                <button class="icon-btn voice-btn" id="voice-btn" onclick="toggleVoice()">🎤</button>
+                <button class="icon-btn" id="speak-btn" onclick="toggleSpeak()" title="語音朗讀">🔊</button>
+                <textarea id="user-input" placeholder="點擊上方「New Chat」開始對話..." rows="1"></textarea>
+                <button id="send-btn" class="icon-btn" onclick="sendMessage()">↑</button>
+            </div>
+            <p id="image-name" style="font-size: 10px; color: var(--apple-blue); margin: 8px 0 0 10px;"></p>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="formula-modal">
+        <div class="modal">
+            <h3>📐 公式識別結果</h3>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">請確認以下公式是否正確，然後選擇解題模式：</p>
+            <div class="formula-preview">
+                <div class="formula-preview-title">識別到的公式：</div>
+                <div class="formula-preview-content" id="recognized-formula"></div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button class="mode-btn active" id="modal-mode-step" onclick="setModalMode('step_by_step')">逐步提示</button>
+                <button class="mode-btn" id="modal-mode-direct" onclick="setModalMode('direct')">直接解答</button>
+            </div>
+            <textarea id="formula-question" class="modal-input" placeholder="補充說明（可選）"></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeFormulaModal()">取消</button>
+                <button class="modal-btn primary" onclick="submitFormula()">開始解題</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="check-modal">
+        <div class="modal">
+            <h3>📝 檢查解答</h3>
+            <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 12px;">上傳你的解答，讓 AI 檢查對錯：</p>
+            <input type="file" id="check-question-img" accept="image/*" style="display:none">
+            <input type="file" id="check-answer-img" accept="image/*" style="display:none">
+            <div class="upload-area" onclick="document.getElementById('check-question-img').click()">
+                <span id="check-question-label">📷 點擊上傳題目圖片（可選）</span>
+            </div>
+            <div class="upload-area" onclick="document.getElementById('check-answer-img').click()">
+                <span id="check-answer-label">📝 點擊上傳你的解答</span>
+            </div>
+            <textarea id="check-question-text" class="modal-input" placeholder="或直接輸入題目文字..."></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeCheckModal()">取消</button>
+                <button class="modal-btn primary" onclick="submitCheck()">開始檢查</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="stats-modal">
+        <div class="modal">
+            <h3>📊 使用量統計</h3>
+            <div class="stats-panel">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-messages">0</div>
+                        <div class="stat-label">總訊息數</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-input">0</div>
+                        <div class="stat-label">輸入 Token</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" id="stat-output">0</div>
+                        <div class="stat-label">輸出 Token</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeStatsModal()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        marked.setOptions({ gfm: true, breaks: true });
+        
+        let currentUser = null;
+        let isRecording = false;
+        let speakEnabled = false;
+        
+        const chatBox = document.getElementById('chat-container');
+        const userInput = document.getElementById('user-input');
+        const imgName = document.getElementById('image-name');
+        const sendBtn = document.getElementById('send-btn');
+        const welcomeScreen = document.getElementById('welcome-screen');
+        
+        const recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let speechRec = recognition ? new recognition() : null;
+        
+        if (speechRec) {
+            speechRec.lang = 'zh-TW';
+            speechRec.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                userInput.value += transcript;
+                stopRecording();
+            };
+            speechRec.onend = stopRecording;
+        }
+
+        function getCookie(name) {
+            let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+            return v ? v[2] : null;
+        }
+
+        function loadUser() {
+            loadSessions();
+        }
+
+        function updateUserMenu() {
+            const menu = document.getElementById('user-menu');
+            menu.innerHTML = '';
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light');
+            localStorage.setItem('theme', document.body.classList.contains('light') ? 'light' : 'dark');
+        }
+
+        function loadTheme() {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') document.body.classList.add('light');
+        }
+
+        function toggleVoice() {
+            if (!speechRec) {
+                alert('您的瀏覽器不支持語音識別');
+                return;
+            }
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        function startRecording() {
+            isRecording = true;
+            document.getElementById('voice-btn').classList.add('recording');
+            speechRec.start();
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            document.getElementById('voice-btn').classList.remove('recording');
+        }
+
+        function toggleSpeak() {
+            speakEnabled = !speakEnabled;
+            document.getElementById('speak-btn').style.opacity = speakEnabled ? '1' : '0.6';
+        }
+
+        function speakText(text) {
+            if (!speakEnabled || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text.replace(/<[^>]+>/g, ''));
+            utterance.lang = 'zh-TW';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        let currentId = null;
+        let selectedImg = null;
+        let currentMode = 'step_by_step';
+        let pendingFormula = '';
+        let pendingFormulaImg = null;
+        let modalMode = 'step_by_step';
+        
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('mode-step').classList.toggle('active', mode === 'step_by_step');
+            document.getElementById('mode-direct').classList.toggle('active', mode === 'direct');
+        }
+
+        function setModalMode(mode) {
+            modalMode = mode;
+            document.getElementById('modal-mode-step').classList.toggle('active', mode === 'step_by_step');
+            document.getElementById('modal-mode-direct').classList.toggle('active', mode === 'direct');
+        }
+
+        function openFormulaModal(formula, img) {
+            pendingFormula = formula;
+            pendingFormulaImg = img;
+            document.getElementById('recognized-formula').textContent = formula;
+            document.getElementById('formula-modal').classList.add('active');
+            document.getElementById('formula-question').value = '';
+            setModalMode('step_by_step');
+        }
+
+        function closeFormulaModal() {
+            document.getElementById('formula-modal').classList.remove('active');
+        }
+
+        async function submitFormula() {
+            const question = document.getElementById('formula-question').value;
+            closeFormulaModal();
+            
+            addMessage('user', `【公式解題】\n${pendingFormula}\n${question ? '\n補充：' + question : ''}`);
+            
+            document.getElementById('loading').classList.add('active');
+            
+            try {
+                const res = await fetch('/api/math/chat/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                    body: JSON.stringify({
+                        message: question || '請解題',
+                        formula: pendingFormula,
+                        mode: modalMode,
+                        session_id: currentId
+                    })
+                });
+                const data = await res.json();
+                if (data.response) {
+                    addMessage('assistant', data.response);
+                } else if (data.error) {
+                    addMessage('assistant', '⚠️ ' + data.error);
+                }
+            } catch (e) {
+                addMessage('assistant', '⚠️ 連線錯誤。');
+            }
+            
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function openCheckModal() {
+            if (!currentId) {
+                alert('請先建立新對話');
+                return;
+            }
+            document.getElementById('check-modal').classList.add('active');
+            document.getElementById('check-question-text').value = '';
+            document.getElementById('check-question-img').value = '';
+            document.getElementById('check-answer-img').value = '';
+            document.getElementById('check-question-label').textContent = '📷 點擊上傳題目圖片（可選）';
+            document.getElementById('check-answer-label').textContent = '📝 點擊上傳你的解答';
+        }
+
+        function closeCheckModal() {
+            document.getElementById('check-modal').classList.remove('active');
+        }
+
+        async function openStatsModal() {
+            document.getElementById('stats-modal').classList.add('active');
+            try {
+                const res = await fetch('/api/stats/usage/', {
+                    headers: {'X-CSRFToken': getCookie('csrftoken')}
+                });
+                const data = await res.json();
+                if (!data.error) {
+                    document.getElementById('stat-messages').textContent = data.total_messages;
+                    document.getElementById('stat-input').textContent = data.total_input_tokens;
+                    document.getElementById('stat-output').textContent = data.total_output_tokens;
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function closeStatsModal() {
+            document.getElementById('stats-modal').classList.remove('active');
+        }
+
+        async function submitCheck() {
+            const questionImg = document.getElementById('check-question-img').files[0];
+            const answerImg = document.getElementById('check-answer-img').files[0];
+            const questionText = document.getElementById('check-question-text').value;
+            
+            if (!answerImg && !questionText) {
+                alert('請上傳解答圖片或輸入題目');
+                return;
+            }
+            
+            let questionImgB64 = null;
+            let answerImgB64 = null;
+            
+            if (questionImg) {
+                questionImgB64 = await fileToBase64(questionImg);
+            }
+            if (answerImg) {
+                answerImgB64 = await fileToBase64(answerImg);
+            }
+            
+            closeCheckModal();
+            addMessage('user', '【檢查解答】請檢查我的解答是否正確');
+            document.getElementById('loading').classList.add('active');
+            
+            try {
+                const res = await fetch('/api/math/check/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                    body: JSON.stringify({
+                        question_image: questionImgB64,
+                        answer_image: answerImgB64,
+                        question_text: questionText,
+                        session_id: currentId
+                    })
+                });
+                const data = await res.json();
+                if (data.response) {
+                    addMessage('assistant', data.response);
+                } else if (data.error) {
+                    addMessage('assistant', '⚠️ ' + data.error);
+                }
+            } catch (e) {
+                addMessage('assistant', '⚠️ 連線錯誤。');
+            }
+            
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        document.getElementById('check-question-img').addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                document.getElementById('check-question-label').textContent = '✓ ' + e.target.files[0].name;
+            }
+        });
+        document.getElementById('check-answer-img').addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                document.getElementById('check-answer-label').textContent = '✓ ' + e.target.files[0].name;
+            }
+        });
+
+        document.getElementById('image-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    const imgB64 = ev.target.result.split(',')[1];
+                    imgName.textContent = '正在識別公式...';
+                    
+                    try {
+                        const res = await fetch('/api/math/recognize/', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                            body: JSON.stringify({image: imgB64})
+                        });
+                        const data = await res.json();
+                        
+                        if (data.formula) {
+                            openFormulaModal(data.formula, imgB64);
+                        } else {
+                            selectedImg = imgB64;
+                            imgName.textContent = '已準備上傳：' + file.name;
+                        }
+                    } catch (err) {
+                        selectedImg = imgB64;
+                        imgName.textContent = '已準備上傳：' + file.name;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function addMessage(role, content, skipSpeak = false) {
+            if (welcomeScreen) welcomeScreen.style.display = 'none';
+
+            const div = document.createElement('div');
+            div.className = `message ${role}`;
+
+            const htmlChunks = [];
+            let processedContent = content.replace(/<(img|br)[^>]*>/gi, (match) => {
+                const idx = htmlChunks.length;
+                htmlChunks.push(match);
+                return `HTMLCHUNK${idx}ENDCHUNK`;
+            });
+
+            const plots = [];
+            processedContent = processedContent.replace(/\[PLOT:\s*(.*?)\]/g, (match, formula) => {
+                const id = 'plot-' + Math.random().toString(36).substr(2, 9);
+                plots.push({ id, formula });
+                return `<div class="plot-container" id="${id}"></div>`;
+            });
+
+            let html = marked.parse(processedContent);
+
+            html = html.replace(/HTMLCHUNK(\d+)ENDCHUNK/g, (match, idx) => {
+                return htmlChunks[parseInt(idx)] || match;
+            });
+
+            div.innerHTML = `
+                <div class="role-label">${role === 'user' ? '你' : 'Mathbot'}</div>
+                <div class="msg-bubble tex2jax_process">${html}</div>
+                ${role === 'assistant' ? '<button class="speak-btn" onclick="speakText(this.parentElement.querySelector(\'.msg-bubble\').innerHTML)">🔊</button>' : ''}
+            `;
+            chatBox.appendChild(div);
+
+            plots.forEach(p => {
+                setTimeout(() => {
+                    try {
+                        functionPlot({
+                            target: '#' + p.id,
+                            width: 400, height: 300, grid: true,
+                            data: [{ fn: p.formula, color: '#0a84ff' }]
+                        });
+                    } catch (err) {
+                        const el = document.getElementById(p.id);
+                        if (el) el.innerHTML = `<p style="color:#ff453a; font-size:12px;">⚠️ 圖形渲染失敗: ${p.formula}</p>`;
+                    }
+                }, 100);
+            });
+
+            if (window.MathJax) {
+                MathJax.typesetPromise ? MathJax.typesetPromise([div]).catch(() => {}) : MathJax.Hub && MathJax.Hub.Queue(["Typeset", MathJax.Hub, div]);
+            }
+            chatBox.scrollTop = chatBox.scrollHeight;
+            
+            if (role === 'assistant' && !skipSpeak) {
+                speakText(content);
+            }
+        }
+
+        async function createNewChat() {
+            try {
+                const csrftoken = getCookie('csrftoken');
+                console.log('CSRF token:', csrftoken);
+                const res = await fetch('/api/sessions/create/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrftoken},
+                    body: JSON.stringify({title: '新對話'})
+                });
+                console.log('Response status:', res.status);
+                const data = await res.json();
+                console.log('Response data:', data);
+                if (data.error) {
+                    alert('錯誤：' + data.error);
+                    return;
+                }
+                currentId = data.id;
+                chatBox.innerHTML = '';
+                addMessage('assistant', '您好！我是您的專屬數學研究助手。您可以嘗試發送數學題目或上傳圖片。');
+                userInput.placeholder = '傳送訊息給 Mathbot...';
+                loadSessions();
+            } catch (err) {
+                console.error('Create chat error:', err);
+                alert('建立對話失敗，請稍後再試');
+            }
+        }
+
+        async function loadSession(id) {
+            try {
+                currentId = id;
+                const res = await fetch(`/api/sessions/${id}/`);
+                const data = await res.json();
+                chatBox.innerHTML = '';
+                data.messages.forEach(m => addMessage(m.role, m.content, true));
+                userInput.placeholder = '傳送訊息給 Mathbot...';
+                loadSessions();
+            } catch (err) {
+                console.error('Load session error:', err);
+                alert('載入對話失敗');
+            }
+        }
+
+        async function summarizeSession() {
+            if (!currentId) return;
+            if (!confirm('要對此對話進行摘要嗎？')) return;
+            
+            try {
+                const res = await fetch(`/api/sessions/${currentId}/summarize/`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                    body: JSON.stringify({session_id: currentId})
+                });
+                const data = await res.json();
+                if (data.summary) {
+                    alert('摘要：' + data.summary);
+                }
+            } catch (e) {
+                alert('摘要失敗');
+            }
+        }
+
+        async function sendMessage() {
+            const msg = userInput.value.trim();
+            if (!msg && !selectedImg) return;
+            if (!currentId) {
+                alert('請先點擊「New Chat」建立新對話');
+                return;
+            }
+
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            const imgToSend = selectedImg;
+            selectedImg = null;
+            imgName.textContent = '';
+
+            if (!msg && imgToSend) {
+                addMessage('user', `[上傳圖片請辨識公式]`);
+                document.getElementById('loading').classList.add('active');
+                
+                try {
+                    const res = await fetch('/api/math/recognize/', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                        body: JSON.stringify({image: imgToSend})
+                    });
+                    const data = await res.json();
+                    
+                    if (data.formula) {
+                        openFormulaModal(data.formula, imgToSend);
+                    } else {
+                        addMessage('assistant', data.error || '無法識別公式，請再試一次');
+                    }
+                } catch (e) { 
+                    addMessage('assistant', '⚠️ 連線錯誤。'); 
+                }
+                
+                document.getElementById('loading').classList.remove('active');
+                sendBtn.disabled = false;
+                return;
+            }
+
+            addMessage('user', imgToSend ? `[圖片分析] ${msg}` : msg);
+            document.getElementById('loading').classList.add('active');
+            sendBtn.disabled = true;
+
+            const url = '/api/chat/stream/';
+            const body = imgToSend 
+                ? {image: imgToSend, prompt: msg || '請分析', session_id: currentId, mode: currentMode}
+                : {message: msg, session_id: currentId};
+
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                addMessage('assistant', data.response);
+            } catch (e) { addMessage('assistant', '⚠️ 連線錯誤。'); }
+
+            document.getElementById('loading').classList.remove('active');
+            sendBtn.disabled = false;
+            loadSessions();
+        }
+
+        async function deleteSession(id) {
+            if(!confirm('永久刪除？')) return;
+            await fetch(`/api/sessions/${id}/delete/`, { method: 'DELETE', headers: {'X-CSRFToken': getCookie('csrftoken')} });
+            if (currentId === id) location.reload(); else loadSessions();
+        }
+
+        async function loadSessions() {
+            try {
+                const res = await fetch('/api/sessions/');
+                const data = await res.json();
+                document.getElementById('session-list').innerHTML = data.sessions.map(s => `
+                    <div class="session-item ${s.id === currentId ? 'active' : ''}" onclick="loadSession(${s.id})">
+                        <span class="session-title">${s.title}</span>
+                        <button class="delete-btn" onclick="event.stopPropagation(); deleteSession(${s.id})">×</button>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error('Load sessions error:', err);
+            }
+        }
+
+        userInput.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
+        userInput.addEventListener('input', () => { userInput.style.height = 'auto'; userInput.style.height = (userInput.scrollHeight) + 'px'; });
+        
+        loadTheme();
+        loadUser();
+    </script>
+</body>
+</html>
