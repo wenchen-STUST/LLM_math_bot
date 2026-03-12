@@ -178,6 +178,7 @@ def get_user_from_request(request):
 # 認證視圖區塊 (login, register, logout)
 # ============================================================================
 
+@csrf_exempt
 def login_view(request):
     if request.method == 'POST':
         data = json.loads(request.body)
@@ -196,6 +197,7 @@ def login_view(request):
     return JsonResponse({'error': 'Invalid method'}, status=405)
 
 
+@csrf_exempt
 def register_view(request):
     if request.method == 'POST':
         data = json.loads(request.body)
@@ -222,6 +224,16 @@ def register_view(request):
 def logout_view(request):
     logout(request)
     return JsonResponse({'status': 'ok'})
+
+
+@csrf_exempt
+@require_http_methods(["GET"])
+def get_user_status(request):
+    """取得目前用戶狀態"""
+    user = get_user_from_request(request)
+    if user:
+        return JsonResponse({'username': user.username})
+    return JsonResponse({})
 
 
 @require_http_methods(["GET"])

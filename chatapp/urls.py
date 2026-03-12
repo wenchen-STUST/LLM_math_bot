@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/math/recognize/', views.recognize_formula, name='recognize_formula'),
     path('api/math/chat/', views.math_chat, name='math_chat'),
     path('api/math/check/', views.check_answer, name='check_answer'),
+    path('api/auth/user/', views.get_user_status, name='user_status'),
     path('api/auth/login/', views.login_view, name='login'),
     path('api/auth/register/', views.register_view, name='register'),
     path('api/auth/logout/', views.logout_view, name='logout'),

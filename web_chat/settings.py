@@ -8,7 +8,11 @@ SECRET_KEY = get_random_secret_key()
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [
+    'linebot.tail0b4e27.ts.net', 
+    'localhost', 
+    '127.0.0.1'
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -74,6 +78,10 @@ LANGUAGE_CODE = 'zh-hant'
 TIME_ZONE = 'Asia/Taipei'
 USE_I18N = True
 USE_TZ = True
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://linebot.tail0b4e27.ts.net'
+]
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']

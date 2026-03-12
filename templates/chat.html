@@ -224,9 +224,177 @@
 
     .speak-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; margin-left: 8px; opacity: 0.6; }
     .speak-btn:hover { opacity: 1; color: var(--apple-blue); }
+
+    /* ====== RWD 響應式設計 ====== */
+    @media (max-width: 768px) {
+        /* 側邊欄 - 行動版改為彈出式 */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 85%;
+            max-width: 300px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 200;
+            backdrop-filter: blur(20px);
+        }
+        #sidebar.active {
+            transform: translateX(0);
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 150;
+        }
+        .sidebar-overlay.active {
+            display: block;
+        }
+        
+        /* 漢堡選單按鈕 */
+        .hamburger-btn {
+            display: block;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 24px;
+            cursor: pointer;
+            padding: 4px 8px;
+            margin-right: 8px;
+        }
+
+        /* Header 調整 */
+        header {
+            padding: 12px 16px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        header > div {
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+        .header-title {
+            font-size: 16px;
+        }
+        
+        /* 模式切換和功能按鈕 - 行動版改為底部或隱藏 */
+        .mode-toggle {
+            display: none;
+        }
+        .action-btn {
+            display: none;
+        }
+        .mobile-toolbar {
+            display: flex;
+            gap: 8px;
+            padding: 8px 16px;
+            background: var(--apple-card);
+            border-top: 0.5px solid var(--glass-border);
+            overflow-x: auto;
+        }
+        .mobile-toolbar .mode-btn,
+        .mobile-toolbar .action-btn {
+            display: inline-flex;
+            white-space: nowrap;
+        }
+        
+        /* 聊天區域 */
+        #chat-container {
+            padding: 20px 12px;
+        }
+        .msg-bubble {
+            font-size: 15px;
+            max-width: 85%;
+        }
+        .user .msg-bubble {
+            padding: 8px 14px;
+            border-radius: 16px 16px 4px 16px;
+        }
+        
+        /* 輸入區域 */
+        .input-area-container {
+            padding: 12px;
+        }
+        .input-bar {
+            padding: 10px 12px;
+        }
+        textarea {
+            font-size: 15px;
+        }
+        
+        /* Modal 調整 */
+        .modal {
+            width: 95%;
+            max-height: 90vh;
+            margin: 10px;
+        }
+        
+        /* 歡迎畫面 */
+        .welcome-title {
+            font-size: 28px;
+        }
+        .welcome-sub {
+            font-size: 15px;
+        }
+    }
+
+    @media (min-width: 769px) {
+        .hamburger-btn,
+        .mobile-toolbar,
+        .sidebar-overlay {
+            display: none !important;
+        }
+    }
+
+    /* 登入/註冊按鈕 */
+    .auth-btn {
+        padding: 6px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--glass-border);
+        background: transparent;
+        color: var(--text-primary);
+        font-size: 13px;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+    .auth-btn:hover {
+        background: rgba(255,255,255,0.1);
+    }
+    .auth-btn.primary {
+        background: var(--apple-blue);
+        border-color: var(--apple-blue);
+    }
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .user-name {
+        font-size: 13px;
+        color: var(--text-primary);
+    }
+    .logout-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 12px;
+    }
+    .logout-btn:hover {
+        color: #ff453a;
+    }
 </style>
 </head>
 <body>
+    <!-- 側邊欄遮罩 (手機用) -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+    
     <div id="sidebar">
         <div class="sidebar-header">
             <button class="new-chat-btn" onclick="createNewChat()">＋ New Chat</button>
@@ -236,7 +404,10 @@
     
     <div id="main">
         <header>
-            <div class="header-title">Mathbot</div>
+            <div style="display: flex; align-items: center;">
+                <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
+                <div class="header-title">Mathbot</div>
+            </div>
             <div style="display: flex; gap: 12px; align-items: center;">
                 <div class="mode-toggle">
                     <button class="mode-btn active" id="mode-step" onclick="setMode('step_by_step')">逐步提示</button>
@@ -259,6 +430,14 @@
         <div class="loader-container" id="loading">
             <div class="typing-indicator"><span></span><span></span><span></span></div>
             <span style="margin-left: 8px;">Mathbot 正在處理中...</span>
+        </div>
+        
+        <!-- 移動端工具欄 -->
+        <div class="mobile-toolbar">
+            <button class="mode-btn active" id="mobile-mode-step" onclick="setMode('step_by_step'); document.getElementById('mobile-mode-direct').classList.remove('active'); this.classList.add('active')">逐步提示</button>
+            <button class="mode-btn" id="mobile-mode-direct" onclick="setMode('direct'); document.getElementById('mobile-mode-step').classList.remove('active'); this.classList.add('active')">直接解答</button>
+            <button class="action-btn" onclick="openCheckModal()">檢查解答</button>
+            <button class="action-btn" onclick="openStatsModal()">統計</button>
         </div>
         
         <div class="input-area-container">
@@ -339,6 +518,36 @@
         </div>
     </div>
 
+    <!-- 登入 Modal -->
+    <div class="modal-overlay" id="login-modal">
+        <div class="modal">
+            <h3>🔐 登入</h3>
+            <input type="text" id="login-username" class="modal-input" placeholder="用戶名">
+            <input type="password" id="login-password" class="modal-input" placeholder="密碼">
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeLoginModal()">取消</button>
+                <button class="modal-btn primary" onclick="submitLogin()">登入</button>
+            </div>
+            <p style="text-align: center; margin-top: 12px; font-size: 13px; color: var(--text-secondary);">
+                還沒有帳號？<a href="#" onclick="closeLoginModal(); openRegisterModal()" style="color: var(--apple-blue);">註冊</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- 註冊 Modal -->
+    <div class="modal-overlay" id="register-modal">
+        <div class="modal">
+            <h3>📝 註冊</h3>
+            <input type="text" id="register-username" class="modal-input" placeholder="用戶名">
+            <input type="password" id="register-password" class="modal-input" placeholder="密碼">
+            <input type="password" id="register-password2" class="modal-input" placeholder="確認密碼">
+            <div class="modal-buttons">
+                <button class="modal-btn secondary" onclick="closeRegisterModal()">取消</button>
+                <button class="modal-btn primary" onclick="submitRegister()">註冊</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         marked.setOptions({ gfm: true, breaks: true });
         
@@ -370,13 +579,145 @@
             return v ? v[2] : null;
         }
 
+        // 檢查登入狀態
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/user/', {
+                    headers: {'X-CSRFToken': getCookie('csrftoken')}
+                });
+                const data = await res.json();
+                if (data.username) {
+                    currentUser = data.username;
+                    updateUserMenu();
+                    loadSessions();
+                } else {
+                    updateUserMenu();
+                    loadSessions();
+                }
+            } catch (e) {
+                updateUserMenu();
+                loadSessions();
+            }
+        }
+
         function loadUser() {
-            loadSessions();
+            checkAuth();
         }
 
         function updateUserMenu() {
             const menu = document.getElementById('user-menu');
-            menu.innerHTML = '';
+            if (currentUser) {
+                menu.innerHTML = `
+                    <span class="user-name">${currentUser}</span>
+                    <button class="logout-btn" onclick="logout()">登出</button>
+                `;
+            } else {
+                menu.innerHTML = `
+                    <button class="auth-btn" onclick="openLoginModal()">登入</button>
+                    <button class="auth-btn primary" onclick="openRegisterModal()">註冊</button>
+                `;
+            }
+        }
+
+        // 登入相關函數
+        function openLoginModal() {
+            document.getElementById('login-modal').classList.add('active');
+            document.getElementById('login-username').value = '';
+            document.getElementById('login-password').value = '';
+        }
+        function closeLoginModal() {
+            document.getElementById('login-modal').classList.remove('active');
+        }
+        async function submitLogin() {
+            const username = document.getElementById('login-username').value.trim();
+            const password = document.getElementById('login-password').value;
+            if (!username || !password) {
+                alert('請輸入用戶名和密碼');
+                return;
+            }
+            try {
+                const res = await fetch('/api/auth/login/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                    body: JSON.stringify({username, password})
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    currentUser = data.username;
+                    closeLoginModal();
+                    updateUserMenu();
+                    loadSessions();
+                    alert('登入成功！');
+                } else {
+                    alert(data.error || '登入失敗');
+                }
+            } catch (e) {
+                alert('登入失敗，請稍後再試');
+            }
+        }
+
+        // 註冊相關函數
+        function openRegisterModal() {
+            document.getElementById('register-modal').classList.add('active');
+            document.getElementById('register-username').value = '';
+            document.getElementById('register-password').value = '';
+            document.getElementById('register-password2').value = '';
+        }
+        function closeRegisterModal() {
+            document.getElementById('register-modal').classList.remove('active');
+        }
+        async function submitRegister() {
+            const username = document.getElementById('register-username').value.trim();
+            const password = document.getElementById('register-password').value;
+            const password2 = document.getElementById('register-password2').value;
+            if (!username || !password) {
+                alert('請輸入用戶名和密碼');
+                return;
+            }
+            if (password !== password2) {
+                alert('兩次密碼不一致');
+                return;
+            }
+            try {
+                const res = await fetch('/api/auth/register/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken')},
+                    body: JSON.stringify({username, password, password2})
+                });
+                const data = await res.json();
+                if (data.status === 'ok') {
+                    currentUser = data.username;
+                    closeRegisterModal();
+                    updateUserMenu();
+                    loadSessions();
+                    alert('註冊成功！');
+                } else {
+                    alert(data.error || '註冊失敗');
+                }
+            } catch (e) {
+                alert('註冊失敗，請稍後再試');
+            }
+        }
+
+        // 登出
+        async function logout() {
+            try {
+                await fetch('/api/auth/logout/', {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': getCookie('csrftoken')}
+                });
+                currentUser = null;
+                updateUserMenu();
+                loadSessions();
+                alert('已登出');
+            } catch (e) {
+                alert('登出失敗');
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('sidebar-overlay').classList.toggle('active');
         }
 
         function toggleTheme() {
@@ -434,8 +775,12 @@
         
         function setMode(mode) {
             currentMode = mode;
+            // 桌面端按鈕
             document.getElementById('mode-step').classList.toggle('active', mode === 'step_by_step');
             document.getElementById('mode-direct').classList.toggle('active', mode === 'direct');
+            // 移動端按鈕
+            document.getElementById('mobile-mode-step').classList.toggle('active', mode === 'step_by_step');
+            document.getElementById('mobile-mode-direct').classList.toggle('active', mode === 'direct');
         }
 
         function setModalMode(mode) {
@@ -705,6 +1050,10 @@
                 addMessage('assistant', '您好！我是您的專屬數學研究助手。您可以嘗試發送數學題目或上傳圖片。');
                 userInput.placeholder = '傳送訊息給 Mathbot...';
                 loadSessions();
+                // 行動版：建立新對話後關閉側邊欄
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
             } catch (err) {
                 console.error('Create chat error:', err);
                 alert('建立對話失敗，請稍後再試');
@@ -720,6 +1069,10 @@
                 data.messages.forEach(m => addMessage(m.role, m.content, true));
                 userInput.placeholder = '傳送訊息給 Mathbot...';
                 loadSessions();
+                // 行動版：載入對話後關閉側邊欄
+                if (window.innerWidth <= 768) {
+                    toggleSidebar();
+                }
             } catch (err) {
                 console.error('Load session error:', err);
                 alert('載入對話失敗');
