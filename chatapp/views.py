@@ -416,6 +416,13 @@ def chat_stream(request):
 4. 嚴禁使用 ( 作為公式開始，嚴禁使用 ) 作為公式結束（請用 \( 和 \) 代替）
 5. 嚴禁包含 ```latex 等 Markdown 程式碼塊標籤
 
+【LaTeX 語法提醒】
+- 使用 \left( 必須搭配 \right)
+- 使用 \left[ 必須搭配 \right]
+- 使用 \left. 必須搭配 \right
+- 嚴禁混用不同的括號類型
+- 嚴格確保每個 \left 都有對應的 \right
+
 【繪圖指令】
 當使用者要求「畫圖」、「畫出...圖形」、「畫示意圖」、「視覺化」、「顯示圖形」時，請提供 Python 程式碼來繪圖。
 
@@ -632,6 +639,11 @@ ax.plot(0, 1, '^k', transform=ax.get_xaxis_transform(), clip_on=False, markersiz
         # 過濾錯誤的數學式分隔符
         full_response = re.sub(r'\[([^\]]+)\]', r'$$\1$$', full_response)
         full_response = re.sub(r'\(([^)]+)\)', r'\(\1\)', full_response)
+        
+        # 修復 LaTeX 括號不匹配問題
+        full_response = re.sub(r'\\left\.\s*\\right([\[\]])', r'\\right\1', full_response)
+        full_response = re.sub(r'\\left\)\s*\\right([\[\]])', r'\\right\1', full_response)
+        full_response = re.sub(r'\\left\]\s*\\right([\(\[])', r'\\right\1', full_response)
         
         ChatMessage.objects.create(session=session, role='assistant', content=full_response, model=settings.DEFAULT_MODEL)
         
