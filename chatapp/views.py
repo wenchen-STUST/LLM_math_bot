@@ -64,6 +64,7 @@ def validate_python_code(code: str) -> tuple[bool, str]:
             if isinstance(node, ast.Import):
                 for alias in node.names:
                     if alias.name not in ('matplotlib', 'matplotlib.pyplot', 'numpy', 'math', 'random'):
+                    
                         return False, f"不安全：禁止匯入 '{alias.name}'"
             elif isinstance(node, ast.ImportFrom):
                 if node.module not in ('matplotlib', 'matplotlib.pyplot', 'numpy', 'math', 'random'):
@@ -409,10 +410,11 @@ def chat_stream(request):
 - 進階微積分：多變數函數、偏導數、重積分、微分方程、向量分析
 
 【格式強制要求】
-1. 行內公式必須使用 \\( ... \\)，例如：\\( f(x) = x^2 \\)
-2. 行間公式必須使用 $$ ... $$，例如：$$ f'(x) = \\lim_{x \\to 0} \\frac{f(x)}{x} $$
-3. 嚴禁使用 ( ... ) 或 [ ... ] 來包裹數學式
-4. 嚴禁包含 ```latex 等 Markdown 程式碼塊標籤
+1. 行內公式必須使用 \( ... \)，例如：\( f(x) = x^2 \)
+2. 行間公式必須使用 $$ ... $$，例如：$$ f'(x) = \lim_{x \to 0} \frac{f(x)}{x} $$
+3. 嚴禁使用 [ 作為公式開始，嚴禁使用 ] 作為公式結束
+4. 嚴禁使用 ( 作為公式開始，嚴禁使用 ) 作為公式結束（請用 \( 和 \) 代替）
+5. 嚴禁包含 ```latex 等 Markdown 程式碼塊標籤
 
 【繪圖指令】
 當使用者要求「畫圖」、「畫出...圖形」、「畫示意圖」、「視覺化」、「顯示圖形」時，請提供 Python 程式碼來繪圖。
@@ -441,6 +443,8 @@ plt.savefig('temp_plot.png', bbox_inches='tight')
 
 【重要提醒】
 - 如果使用者問與數學無關的問題，請禮貌地回覆：「抱歉，我只能回答數學相關的問題。」
+- 嚴禁使用 [ 作為公式開始，嚴禁使用 ] 作為公式結束
+- 嚴禁使用 ( 作為公式開始，嚴禁使用 ) 作為公式結束
 - 請全程使用繁體中文
 - 盡可能用圖形或視覺化幫助學生建立直覺"""
 
@@ -624,6 +628,11 @@ ax.plot(0, 1, '^k', transform=ax.get_xaxis_transform(), clip_on=False, markersiz
                                 os.remove(script_path)
 
         full_response = re.sub(r'```python.*?```', '', full_response, flags=re.DOTALL).strip()
+        
+        # 過濾錯誤的數學式分隔符
+        full_response = re.sub(r'\[([^\]]+)\]', r'$$\1$$', full_response)
+        full_response = re.sub(r'\(([^)]+)\)', r'\(\1\)', full_response)
+        
         ChatMessage.objects.create(session=session, role='assistant', content=full_response, model=settings.DEFAULT_MODEL)
         
         if session.title == '新對話':
