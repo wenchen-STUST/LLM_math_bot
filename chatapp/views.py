@@ -640,6 +640,10 @@ ax.plot(0, 1, '^k', transform=ax.get_xaxis_transform(), clip_on=False, markersiz
         full_response = re.sub(r'\[([^\]]+)\]', r'$$\1$$', full_response)
         full_response = re.sub(r'\(([^)]+)\)', r'\(\1\)', full_response)
         
+        # 修復多餘的轉義反斜杠 \( -> \(
+        full_response = full_response.replace('\\(', '\(').replace('\\)', '\)')
+        full_response = full_response.replace('\\[', '\[').replace('\\]', '\]')
+        
         # 修復 LaTeX 括號不匹配問題
         full_response = re.sub(r'\\left\.\s*\\right([\[\]])', r'\\right\1', full_response)
         full_response = re.sub(r'\\left\)\s*\\right([\[\]])', r'\\right\1', full_response)
